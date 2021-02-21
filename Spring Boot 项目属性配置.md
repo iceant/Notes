@@ -77,11 +77,19 @@ messages.properties 不能少
 
 ## SQLite
 
+```xml
+<dependency>
+    <groupId>org.xerial</groupId>
+    <artifactId>sqlite-jdbc</artifactId>
+    <version>3.34.0</version>
+</dependency>
+```
+
 ```properties
 ################################################################################
 ## jdbc
 spring.datasource.driver-class-name=org.sqlite.JDBC
-spring.datasource.url=classpath:/static/resources/app.db
+spring.datasource.url=jdbc:sqlite:app.db
 ```
 
 # Jackson 不输出空值
@@ -98,11 +106,11 @@ spring.jackson.generator.write-numbers-as-strings=true
 
 # 认证过程
 
-![abstractauthenticationprocessingfilter](D:\Projects\Notes\assets\abstractauthenticationprocessingfilter.png)
+![abstractauthenticationprocessingfilter](assets\abstractauthenticationprocessingfilter.png)
 
 ## DaoAuthenticationProvider
 
-![daoauthenticationprovider](D:\Projects\Notes\assets\daoauthenticationprovider.png)
+![daoauthenticationprovider](assets\daoauthenticationprovider.png)
 
 ![number 1](https://docs.spring.io/spring-security/site/docs/5.4.2/reference/html5/images/icons/number_1.png) The authentication `Filter` from [Reading the Username & Password](https://docs.spring.io/spring-security/site/docs/5.4.2/reference/html5/#servlet-authentication-unpwd-input) passes a `UsernamePasswordAuthenticationToken` to the `AuthenticationManager` which is implemented by [`ProviderManager`](https://docs.spring.io/spring-security/site/docs/5.4.2/reference/html5/#servlet-authentication-providermanager).
 
@@ -163,6 +171,164 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 </body>
 </html>
 ```
+
+# webjars
+
+```xml
+<dependency>
+    <groupId>org.webjars</groupId>
+    <artifactId>bootstrap</artifactId>
+    <version>4.6.0</version>
+</dependency>
+<dependency>
+    <groupId>org.webjars</groupId>
+    <artifactId>jquery</artifactId>
+    <version>3.5.1</version>
+</dependency>
+<dependency>
+    <groupId>org.webjars</groupId>
+    <artifactId>webjars-locator</artifactId>
+    <version>0.40</version>
+</dependency>
+```
+
+
+
+# Beetl 集成
+
+## dependency
+
+```xml
+<dependency>
+    <groupId>com.ibeetl</groupId>
+    <artifactId>beetl-framework-starter</artifactId>
+    <version>1.2.38.RELEASE</version>
+</dependency>
+```
+
+## beetl.properties
+
+```properties
+DELIMITER_STATEMENT_START=<!--:
+DELIMITER_STATEMENT_END=-->
+```
+
+## application.properties
+
+```properties
+################################################################################
+#### beetl
+beetl.enabled=true
+beetl.suffix=html
+```
+
+## BeetlTemplateConfig.java
+
+```java
+import com.ibeetl.starter.BeetlTemplateCustomize;
+import org.beetl.core.GroupTemplate;
+import org.beetl.ext.spring.BeetlGroupUtilConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.context.WebApplicationContext;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Configuration
+@ConditionalOnClass(value = {BeetlGroupUtilConfiguration.class})
+public class BeetlTemplateConfig {
+
+    private final WebApplicationContext wac;
+
+    public BeetlTemplateConfig(WebApplicationContext wac) {
+        this.wac = wac;
+    }
+
+    @Bean(name = {"beetlTemplateCustomize"})
+    public BeetlTemplateCustomize beetlTemplateCustomize() {
+        return new BeetlTemplateCustomize() {
+            public void customize(GroupTemplate groupTemplate) {
+                Map<String, Object> sharedVars = new HashMap<String, Object>();
+                groupTemplate.setSharedVars(sharedVars);
+                groupTemplate.registerFunction("i18n", new I18nFunction(wac));
+            }
+        };
+    }
+    
+    public static class I18nFunction implements Function {
+        private WebApplicationContext wac;
+
+        public I18nFunction(WebApplicationContext wac) {
+            this.wac = wac;
+        }
+
+        @Override
+        public Object call(Object[] obj, Context context) {
+            HttpServletRequest request = (HttpServletRequest) context.getGlobal(WebVariable.REQUEST);
+            RequestContext requestContext = new RequestContext(request);
+            String message = requestContext.getMessage((String) obj[0]);
+            return message;
+        }
+    }
+}
+```
+
+## layout/layout.html
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <link rel="stylesheet" href="${ctxPath}/webjars/bootstrap/css/bootstrap.min.css" />
+    ${head}
+</head>
+<body>
+${body}
+<script src="${ctxPath}/webjars/jquery/jquery.min.js"></script>
+<script src="${ctxPath}/webjars/bootstrap/js/bootstrap.min.js"></script>
+</body>
+</html>
+```
+
+## pages/index.html
+
+```html
+<!--:
+var body = {
+-->
+
+I'm Index
+
+<!--:};//end body-->
+
+<!--:
+include("/layout/layout.html",{title:i18n('app.pages.index.title'), head:'', body:body}){}
+-->
+```
+
+## ViewController.java
+
+**注意要返回 `.html`，否则无法访问**
+
+```java
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+
+@Controller
+public class ViewController {
+    @RequestMapping(path = {"","/index", "/home", "/"})
+    public ModelAndView index(){
+        return new ModelAndView("pages/index.html");
+    }
+}
+```
+
+
 
 # 自定义登录成功和识别的处理逻辑
 
@@ -410,7 +576,7 @@ public class RunAsController {
 
 # Captcha 认证码通过Filter实现
 
-![image-20210209232454762](D:\Projects\Notes\assets\captcha.png)
+![image-20210209232454762](assets\captcha.png)
 
 ## 依赖
 
@@ -822,7 +988,7 @@ public class CorsConfig {
 4. Client: 请求访问资源的第三方
 5. Authorization Server: 授权服务器，发放令牌
 
-![image-20210210075919305](D:\Projects\Notes\assets\OAuth)
+![image-20210210075919305](assets\OAuth)
 
 (A) 客户端向资源所有者请求资源访问许可
 
@@ -840,7 +1006,7 @@ public class CorsConfig {
 
 授权码模式完整运行流程
 
-![image-20210210081106042](D:\Projects\Notes\assets\authorization_code_mode)
+![image-20210210081106042](assets\authorization_code_mode)
 
 将访问请求导向授权服务器，授权服务器给客户端发放令牌
 
@@ -856,7 +1022,7 @@ https://graph.qq.com/oauth2.0/show?which=Login&display=pc&response_type=code&cli
 
 由于访问令牌直接暴露在浏览器端，所以隐私授权模式可能会导致访问令牌被黑客获取，仅适用于临时访问的场景。QQ针对移动端用户采用的是隐式授权模式
 
-![image-20210210081757834](D:\Projects\Notes\assets\oauth_implicit_mode)
+![image-20210210081757834](assets\oauth_implicit_mode)
 
 
 
@@ -864,11 +1030,11 @@ https://graph.qq.com/oauth2.0/show?which=Login&display=pc&response_type=code&cli
 
 客户端直接携带用户密码向授权服务器申请令牌
 
-![image-20210210082145198](D:\Projects\Notes\assets\oauth_password_credentials_mode)
+![image-20210210082145198](assets\oauth_password_credentials_mode)
 
 ## 客户端授权模式(Client Credentials)
 
-![image-20210210082249860](D:\Projects\Notes\assets\oauth_client_credentials_mode)
+![image-20210210082249860](assets\oauth_client_credentials_mode)
 
 
 
@@ -1655,6 +1821,7 @@ public class TransactionConfiguration {
         txMap.put("query*", readOnlyTx);
         txMap.put("search*", readOnlyTx);
         txMap.put("count*", readOnlyTx);
+        txMap.put("read*", readOnlyTx);
         txMap.put("datagrid*", readOnlyTx);
 
         /* others */
