@@ -1903,7 +1903,6 @@ public class WebResponse<T> {
 # AppUtil.java
 
 ```java
-import com.github.iceant.spring.demo.util.convert.*;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -2379,8 +2378,6 @@ public class BeanUtil {
 # IConverter.java
 
 ```java
-package com.github.iceant.spring.demo.util.convert;
-
 public interface IConverter<A, B> {
     public B convertFromAToB(A a, B def);
 }
@@ -2389,8 +2386,6 @@ public interface IConverter<A, B> {
 # StringToBoolean.java
 
 ```java
-package com.github.iceant.spring.demo.util.convert;
-
 public class StringToBoolean implements IConverter<String, Boolean>{
     @Override
     public Boolean convertFromAToB(String s, Boolean def) {
@@ -2406,8 +2401,6 @@ public class StringToBoolean implements IConverter<String, Boolean>{
 # StringToDate.java
 
 ```java
-package com.github.iceant.spring.demo.util.convert;
-
 import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -2523,8 +2516,6 @@ public class StringToDate implements IConverter<String, Date>{
 # StringToDateTime.java
 
 ```java
-package com.github.iceant.spring.demo.util.convert;
-
 import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -2581,8 +2572,6 @@ public class StringToDateTime implements IConverter<String, Date>{
 # StringToDouble.java
 
 ```java
-package com.github.iceant.spring.demo.util.convert;
-
 public class StringToDouble implements IConverter<String, Double>{
     @Override
     public Double convertFromAToB(String s, Double def) {
@@ -2598,8 +2587,6 @@ public class StringToDouble implements IConverter<String, Double>{
 # StringToFloat.java
 
 ```java
-package com.github.iceant.spring.demo.util.convert;
-
 public class StringToFloat implements IConverter<String, Float>{
     @Override
     public Float convertFromAToB(String s, Float def) {
@@ -2615,8 +2602,6 @@ public class StringToFloat implements IConverter<String, Float>{
 # StringToInteger.java
 
 ```java
-package com.github.iceant.spring.demo.util.convert;
-
 public class StringToInteger implements IConverter<String, Integer>{
     @Override
     public Integer convertFromAToB(String s, Integer def) {
@@ -2632,8 +2617,6 @@ public class StringToInteger implements IConverter<String, Integer>{
 # StringToLong.java
 
 ```java
-package com.github.iceant.spring.demo.util.convert;
-
 public class StringToLong implements IConverter<String, Long> {
     @Override
     public Long convertFromAToB(String s, Long def) {
@@ -2649,8 +2632,6 @@ public class StringToLong implements IConverter<String, Long> {
 # StringToNumber.java
 
 ```java
-package com.github.iceant.spring.demo.util.convert;
-
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -2919,8 +2900,6 @@ public class StringToNumber implements IConverter<String, Number>{
 # StringToShort.java
 
 ```java
-package com.github.iceant.spring.demo.util.convert;
-
 public class StringToShort implements IConverter<String, Short>{
     @Override
     public Short convertFromAToB(String s, Short def) {
@@ -2936,8 +2915,6 @@ public class StringToShort implements IConverter<String, Short>{
 # StringToTime.java
 
 ```java
-package com.github.iceant.spring.demo.util.convert;
-
 import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
