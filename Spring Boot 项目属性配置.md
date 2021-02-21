@@ -104,6 +104,16 @@ spring.jackson.default-property-inclusion=non_empty
 spring.jackson.generator.write-numbers-as-strings=true
 ```
 
+# Jackson 输出日期
+
+```properties
+spring.jackson.date-format=yyyy-MM-dd HH:mm:ss
+spring.jackson.time-zone=GMT+8
+spring.jackson.serialization.write-dates-as-timestamps=false
+```
+
+
+
 # 认证过程
 
 ![abstractauthenticationprocessingfilter](assets\abstractauthenticationprocessingfilter.png)
@@ -190,6 +200,16 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     <artifactId>webjars-locator</artifactId>
     <version>0.40</version>
 </dependency>
+```
+
+# 忽略 favicon.ico
+
+```java
+@Override
+public void configure(WebSecurity web) throws Exception {
+    super.configure(web);
+    web.ignoring().mvcMatchers("/favicon.ico");
+}
 ```
 
 
@@ -392,6 +412,8 @@ public class AuthenticationFailureHandlerImpl implements AuthenticationFailureHa
 
 ## JdbcUserDetailsManager 使用的数据库
 
+security_schema.sql
+
 ```sql
 create table if not exists users(
     id integer primary key autoincrement ,
@@ -418,6 +440,13 @@ create table if not exists group_authorities(
     group_id integer not null ,
     authority varchar(50) not null
 );
+```
+
+## 初始化时自动创建表
+
+```properties
+spring.datasource.schema=classpath:sql/security_schema.sql
+spring.datasource.initialization-mode=always
 ```
 
 ## JdbcUserDetailsManager配置
@@ -453,6 +482,8 @@ public UserDetailsService userDetailsService(){
     return userDetailsManager;
 }
 ```
+
+
 
 # RunAs配置
 
@@ -1752,7 +1783,6 @@ aclService.updateAcl(acl);
 # TransactionConfiguration
 
 ```java
-
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.aop.Advisor;
 import org.springframework.aop.aspectj.AspectJExpressionPointcut;
@@ -2184,8 +2214,6 @@ public class AppUtil implements ApplicationContextAware {
 # BeanUtil
 
 ```java
-package com.github.iceant.spring.demo.util;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
