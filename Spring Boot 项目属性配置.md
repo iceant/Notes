@@ -3,6 +3,73 @@
 - [Spring Security 5.4.2](https://docs.spring.io/spring-security/site/docs/5.4.2/reference/html5)
 - [Spring Security RunAsAuth](https://www.baeldung.com/spring-security-run-as-auth)
 
+# pom.xml
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.github.iceant</groupId>
+    <artifactId>point-assets-hub</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <encoding>UTF-8</encoding>
+        <java.version>1.8</java.version>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>2.4.3</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.xerial</groupId>
+                <artifactId>sqlite-jdbc</artifactId>
+                <version>3.34.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.ibeetl</groupId>
+                <artifactId>beetl-framework-starter</artifactId>
+                <version>1.2.38.RELEASE</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <modules>
+        <module>point-assets-hub-webui</module>
+    </modules>
+
+    <repositories>
+        <repository>
+            <id>aliyun</id>
+            <url>https://maven.aliyun.com/repository/public</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+</project>
+```
+
+
+
 # Spring Boot 项目属性配置
 
 ```xml
@@ -137,13 +204,11 @@ spring.jackson.serialization.write-dates-as-timestamps=false
 ## WebSecurityConfig.java
 
 ```java
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.web.authentication.AuthenticationFailureHandler;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
@@ -153,12 +218,18 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         http.csrf().disable().cors()
                 .and()
                 .authorizeRequests()
-                .antMatchers("/login").permitAll()
+                .antMatchers("/login", "/static/**", "/webjars/**").permitAll()
                 .anyRequest().authenticated()
-        .and()
-            .formLogin()
-                .loginPage("/pages/login.html").permitAll()
-                ;
+                .and()
+                .formLogin()
+                .loginPage("/pages/login").permitAll()
+        ;
+    }
+
+    @Override
+    public void configure(WebSecurity web) throws Exception {
+        super.configure(web);
+        web.ignoring().mvcMatchers("/favicon.ico");
     }
 }
 ```
@@ -454,32 +525,27 @@ spring.datasource.initialization-mode=always
 ```java
 @Bean
 public PasswordEncoder passwordEncoder(){
-    return new BCryptPasswordEncoder();
+  return new BCryptPasswordEncoder();
 }
 
 @Bean
-public UserDetailsService userDetailsService(){
-    //        InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
-    //        manager.createUser(User.withUsername("user").password("password").roles("USER").build());
-    //        manager.createUser(User.withUsername("admin").password("password").roles("ADMIN").build());
-    //        return manager;
+public UserDetailsService userDetailsService(DataSource dataSource){
+  PasswordEncoder passwordEncoder = passwordEncoder();
+  String password = passwordEncoder.encode("password");
 
-    PasswordEncoder passwordEncoder = passwordEncoder();
-    String password = passwordEncoder.encode("password");
-
-    JdbcUserDetailsManager userDetailsManager = new JdbcUserDetailsManager();
-    userDetailsManager.setEnableAuthorities(true);
-    userDetailsManager.setEnableGroups(true);
-    userDetailsManager.setDataSource(dataSource);
-    if(!userDetailsManager.userExists("user")){
-        userDetailsManager.createUser(User.withUsername("user").password(password)
-                                      .roles("USER").build());
-    }
-    if(!userDetailsManager.userExists("admin")){
-        userDetailsManager.createUser(User.withUsername("admin").password(password)
-                                      .roles("USER", "ADMIN").build());
-    }
-    return userDetailsManager;
+  JdbcUserDetailsManager userDetailsManager = new JdbcUserDetailsManager();
+  userDetailsManager.setEnableAuthorities(true);
+  userDetailsManager.setEnableGroups(true);
+  userDetailsManager.setDataSource(dataSource);
+  if(!userDetailsManager.userExists("user")){
+    userDetailsManager.createUser(User.withUsername("user").password(password)
+                                  .roles("USER").build());
+  }
+  if(!userDetailsManager.userExists("admin")){
+    userDetailsManager.createUser(User.withUsername("admin").password(password)
+                                  .roles("USER", "ADMIN").build());
+  }
+  return userDetailsManager;
 }
 ```
 
@@ -877,7 +943,7 @@ public class WebAuthenticationDetailsSourceImpl implements AuthenticationDetails
 
 ```
 
-# 自动登录
+# 自动登录(remember-me)
 
 ## 散列方案
 
