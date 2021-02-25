@@ -159,6 +159,15 @@ spring.datasource.driver-class-name=org.sqlite.JDBC
 spring.datasource.url=jdbc:sqlite:app.db
 ```
 
+## 启动时执行 sql
+
+```properties
+spring.datasource.schema=classpath:sql/security_schema.sql
+spring.datasource.initialization-mode=always
+```
+
+
+
 # Jackson 不输出空值
 
 ```properties
@@ -177,6 +186,46 @@ spring.jackson.generator.write-numbers-as-strings=true
 spring.jackson.date-format=yyyy-MM-dd HH:mm:ss
 spring.jackson.time-zone=GMT+8
 spring.jackson.serialization.write-dates-as-timestamps=false
+```
+
+# webjars
+
+```xml
+<dependency>
+    <groupId>org.webjars</groupId>
+    <artifactId>bootstrap</artifactId>
+    <version>4.6.0</version>
+</dependency>
+<dependency>
+    <groupId>org.webjars</groupId>
+    <artifactId>jquery</artifactId>
+    <version>3.5.1</version>
+</dependency>
+<dependency>
+    <groupId>org.webjars</groupId>
+    <artifactId>webjars-locator</artifactId>
+    <version>0.40</version>
+</dependency>
+```
+
+## 使用
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <link rel="stylesheet" href="${ctxPath}/webjars/bootstrap/css/bootstrap.min.css" />
+    <script src="${ctxPath}/webjars/jquery/jquery.min.js"></script>
+	<script src="${ctxPath}/webjars/popper.js/umd/popper.min.js"></script>
+	<script src="${ctxPath}/webjars/bootstrap/js/bootstrap.min.js"></script>
+    ${head}
+</head>
+<body>
+${body}
+</body>
+</html>
 ```
 
 
@@ -237,53 +286,64 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 ## login.html
 
 ```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<!------ Include the above in your HEAD tag ---------->
+
 <body>
-<form action="/login" method="post">
-    <input type="text" name="username" placeholder="username">
-    <input type="password" name="password" placeholder="password">
-    <input type="submit" value="Login">
-</form>
+    <div id="login">
+        <h3 class="text-center text-white pt-5">Login form</h3>
+        <div class="container">
+            <div id="login-row" class="row justify-content-center align-items-center">
+                <div id="login-column" class="col-md-6">
+                    <div id="login-box" class="col-md-12">
+                        <form id="login-form" class="form" action="" method="post">
+                            <h3 class="text-center text-info">Login</h3>
+                            <div class="form-group">
+                                <label for="username" class="text-info">Username:</label><br>
+                                <input type="text" name="username" id="username" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="password" class="text-info">Password:</label><br>
+                                <input type="text" name="password" id="password" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="remember-me" class="text-info"><span>Remember me</span> <span><input id="remember-me" name="remember-me" type="checkbox"></span></label><br>
+                                <input type="submit" name="submit" class="btn btn-info btn-md" value="submit">
+                            </div>
+                            <div id="register-link" class="text-right">
+                                <a href="#" class="text-info">Register here</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
-</html>
-```
-
-# webjars
-
-```xml
-<dependency>
-    <groupId>org.webjars</groupId>
-    <artifactId>bootstrap</artifactId>
-    <version>4.6.0</version>
-</dependency>
-<dependency>
-    <groupId>org.webjars</groupId>
-    <artifactId>jquery</artifactId>
-    <version>3.5.1</version>
-</dependency>
-<dependency>
-    <groupId>org.webjars</groupId>
-    <artifactId>webjars-locator</artifactId>
-    <version>0.40</version>
-</dependency>
 ```
 
 # 忽略 favicon.ico
 
 ```java
-@Override
-public void configure(WebSecurity web) throws Exception {
-    super.configure(web);
-    web.ignoring().mvcMatchers("/favicon.ico");
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+
+@Configuration
+@EnableWebSecurity
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+	// ...
+    @Override
+    public void configure(WebSecurity web) throws Exception {
+        super.configure(web);
+        web.ignoring().mvcMatchers("/favicon.ico");
+    }
 }
 ```
-
-
 
 # Beetl 集成
 
@@ -481,7 +541,7 @@ public class AuthenticationFailureHandlerImpl implements AuthenticationFailureHa
 
 # JdbcUserDetailsManager 使用
 
-## JdbcUserDetailsManager 使用的数据库
+## 数据库
 
 security_schema.sql
 
@@ -960,6 +1020,8 @@ WebSecurityConfig 中添加
 
 ## 持久方案
 
+### 数据库表
+
 ```sql
 create table if not exists persistent_logins(
     username varchar(50) not null,
@@ -968,6 +1030,10 @@ create table if not exists persistent_logins(
     last_used timestamp not null
 );
 ```
+
+
+
+### Java 配置
 
 ```java
 @Bean
@@ -1289,6 +1355,8 @@ public class OAuth2LoginSecurityConfig extends WebSecurityConfigurerAdapter {
 
 ## AuthorizationServerConfig
 
+### In-Memory 版本
+
 ```java
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -1338,6 +1406,81 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 }
 
 ```
+
+### 使用 jdbc 版本
+
+```java
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
+import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
+import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
+import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
+import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
+import org.springframework.security.oauth2.provider.approval.Approval;
+import org.springframework.security.oauth2.provider.approval.ApprovalStore;
+import org.springframework.security.oauth2.provider.approval.JdbcApprovalStore;
+import org.springframework.security.oauth2.provider.token.TokenStore;
+import org.springframework.security.oauth2.provider.token.store.JdbcTokenStore;
+
+import javax.sql.DataSource;
+
+@Profile("simple")
+@Configuration
+@EnableAuthorizationServer
+public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdapter {
+    final PasswordEncoder passwordEncoder;
+    final DataSource dataSource;
+    public AuthorizationServerConfig(PasswordEncoder passwordEncoder, DataSource dataSource) {
+        this.passwordEncoder = passwordEncoder;
+        this.dataSource = dataSource;
+    }
+
+    @Override
+    public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
+        super.configure(security);
+    }
+
+    @Override
+    public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
+        super.configure(clients);
+//        clients.inMemory().withClient("client-for-server")
+//                .secret(passwordEncoder.encode("client-for-server"))
+//                .authorizedGrantTypes("authorization_code", "implicit")
+//                .accessTokenValiditySeconds(7200)
+//                .refreshTokenValiditySeconds(72000)
+//                .redirectUris("http://oauth2client:8080/login/oauth2/code/authorizationserver")
+//                .additionalInformation()
+//                .resourceIds(ResourceServerConfig.RESOURCE_ID)
+//                .authorities("ROLE_CLIENT")
+//                .scopes("profile", "email", "phone", "any")
+//                .autoApprove("profile")
+        clients.jdbc(dataSource)
+        ;
+    }
+
+    @Override
+    public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
+        super.configure(endpoints);
+        endpoints.tokenStore(tokenStore()).approvalStore(approvalStore());
+    }
+
+    @Bean
+    TokenStore tokenStore(){
+        return new JdbcTokenStore(dataSource);
+    }
+
+    @Bean
+    ApprovalStore approvalStore(){
+        return new JdbcApprovalStore(dataSource);
+    }
+}
+```
+
+
 
 ## ResourceServerConfig
 
@@ -3263,6 +3406,198 @@ public class AclUtil {
             default:
                 throw new IllegalArgumentException(String.valueOf(mask));
         }
+    }
+}
+```
+
+# 分页
+
+## PageRequest
+
+```java
+public class PageRequest {
+    private int pageNumber;
+    private int pageSize;
+
+    ////////////////////////////////////////////////////////////////////////////////
+    ////
+
+    public int getPageNumber() {
+        return pageNumber;
+    }
+
+    public PageRequest setPageNumber(int pageNumber) {
+        this.pageNumber = pageNumber;
+        return this;
+    }
+
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    public PageRequest setPageSize(int pageSize) {
+        this.pageSize = pageSize;
+        return this;
+    }
+}
+```
+
+## Page
+
+```java
+public class Page<T> {
+    T data;
+    Integer pageNumber;
+    Integer pageSize;
+    Long dataSize;
+    Long pageCount;
+
+    ////////////////////////////////////////////////////////////////////////////////
+    ////
+    public static <T> Page<T> makePage(Integer pageNumber, Integer pageSize, T data, Long dataSize){
+        return new Page<T>().setPageNumber(pageNumber).setPageSize(pageSize).setDataSize(dataSize).setData(data).build();
+    }
+
+    public static <T> Page<T> makeEmpty(Integer pageNumber, Integer pageSize){
+        return new Page<T>().setPageSize(pageSize).setPageNumber(pageNumber).setDataSize(0L).setData(null).setPageCount(1L);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////
+    ////
+
+    public Page<T> build(){
+        pageCount = (dataSize + pageSize-1)/pageSize;
+        return this;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////
+    ////
+
+    public T getData() {
+        return data;
+    }
+
+    public Page<T> setData(T data) {
+        this.data = data;
+        return this;
+    }
+
+    public Integer getPageNumber() {
+        return pageNumber;
+    }
+
+    public Page<T> setPageNumber(Integer pageNumber) {
+        this.pageNumber = pageNumber;
+        return this;
+    }
+
+    public Integer getPageSize() {
+        return pageSize;
+    }
+
+    public Page<T> setPageSize(Integer pageSize) {
+        this.pageSize = pageSize;
+        return this;
+    }
+
+    public Long getDataSize() {
+        return dataSize;
+    }
+
+    public Page<T> setDataSize(Long dataSize) {
+        this.dataSize = dataSize;
+        return this;
+    }
+
+
+    public Long getPageCount() {
+        return pageCount;
+    }
+
+    public Page<T> setPageCount(Long pageCount) {
+        this.pageCount = pageCount;
+        return this;
+    }
+}
+```
+
+
+
+## PageFunction
+
+```java
+public interface PageFunction {
+    <T> Page<T> getPage(PageRequest pageRequest);
+}
+```
+
+## SqlitePageFunction
+
+```java
+
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementSetter;
+import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.core.RowMapper;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+
+public class SqlitePageFunction<T> implements PageFunction{
+    private final String sql;
+    private final List<Object> params;
+    private final JdbcTemplate jdbcTemplate;
+    private final RowMapper<T> rowMapper;
+
+    public SqlitePageFunction(String sql, List<Object> params, JdbcTemplate jdbcTemplate, RowMapper<T> rowMapper) {
+        this.sql = sql;
+        this.params = params;
+        this.jdbcTemplate = jdbcTemplate;
+        this.rowMapper = rowMapper;
+    }
+
+    @Override
+    public Page<List<T>> getPage(PageRequest pageRequest) {
+        StringBuilder count = new StringBuilder();
+        count.append("SELECT COUNT(*) FROM (").append(sql).append(") AS __table__");
+        Long dataSize = jdbcTemplate.query(count.toString(), new PreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps) throws SQLException {
+                for(int i=0; i<params.size(); i++){
+                    ps.setObject(i+1, params.get(i));
+                }
+            }
+        }, new ResultSetExtractor<Long>() {
+            @Override
+            public Long extractData(ResultSet rs) throws SQLException, DataAccessException {
+                if(rs.next()){
+                    return rs.getLong(1);
+                }
+                return 0L;
+            }
+        });
+        if(dataSize==0){
+            return Page.makeEmpty(pageRequest.getPageNumber(), pageRequest.getPageSize());
+        }
+        StringBuilder pageSql = new StringBuilder(sql).append(" LIMIT ? OFFSET ?");
+        int offset = (pageRequest.getPageNumber()-1)* pageRequest.getPageSize();
+        List<T> data =  jdbcTemplate.query(pageSql.toString(), new PreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps) throws SQLException {
+                int i = 0;
+                if(params!=null && params.size()>0) {
+                    for (; i < params.size(); i++) {
+                        ps.setObject(i + 1, params.get(i));
+                    }
+                }
+                ps.setObject(++i, pageRequest.getPageSize());
+                ps.setObject(++i, offset);
+            }
+        }, rowMapper);
+        return Page.makePage(pageRequest.getPageNumber(), pageRequest.getPageSize(), data, dataSize);
     }
 }
 ```
