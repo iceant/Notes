@@ -1318,7 +1318,7 @@ public class OAuth2LoginSecurityConfig extends WebSecurityConfigurerAdapter {
 - 被authorize服务器重定向回 `http://localhost:8080/login/oauth2/code/github?code=6b4xxxxxxxxxxxee6d&state=2Hwnqp19sMi5Vnwyq_ETycRgrF-O0uk3a1xTIcKK9ho=`
 - localhost 接收到返回，重定向到之前访问的网站
 
-# 配置 OAuth2Server
+# 配置 OAuth2Server(port:9999)
 
 ## pom.xml
 
@@ -1683,6 +1683,199 @@ spring:
             token-uri: http://oauth2server:9999/oauth/token
             user-info-uri: http://oauth2server:9999/me
             user-name-attribute: "name"
+```
+
+## 访问 OAuth2Server 上的资源
+
+```java
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
+
+@RestController
+public class ResourceEndpointController {
+    private static final String URL_GET_USER_PHONE = "http://oauth2server:9999/phone";
+
+    @Autowired
+    private OAuth2AuthorizedClientService authorizedClientService;
+
+    private RestTemplate restTemplate;
+
+    private RestTemplate restTemplate(){
+        if(restTemplate==null){
+            restTemplate = new RestTemplate();
+        }
+        return restTemplate;
+    }
+
+    @GetMapping("/phone")
+    public String userphone(OAuth2AuthenticationToken authenticationToken){
+        OAuth2AuthorizedClient auth2AuthorizedClient = authorizedClientService.loadAuthorizedClient(authenticationToken.getAuthorizedClientRegistrationId(), authenticationToken.getName());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer "+auth2AuthorizedClient.getAccessToken().getTokenValue());
+        HttpEntity<String> requestEntity = new HttpEntity<>(null, headers);
+
+        ResponseEntity<String> response = restTemplate().exchange(URL_GET_USER_PHONE, HttpMethod.GET, requestEntity, String.class);
+        return  response.getBody();
+    }
+
+    @GetMapping("/me")
+    public String me(OAuth2AuthenticationToken authenticationToken){
+        OAuth2AuthorizedClient auth2AuthorizedClient = authorizedClientService.loadAuthorizedClient(authenticationToken.getAuthorizedClientRegistrationId(), authenticationToken.getName());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer "+auth2AuthorizedClient.getAccessToken().getTokenValue());
+        HttpEntity<String> requestEntity = new HttpEntity<>(null, headers);
+
+        ResponseEntity<String> response = restTemplate().exchange("http://oauth2server:9999/me", HttpMethod.GET, requestEntity, String.class);
+        return  response.getBody();
+    }
+}
+```
+
+
+
+## 访问外部资源
+
+```java
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
+
+@RestController
+public class ResourceServerEndpointController {
+    private static final String URL_GET_RES = "http://localhost:9090/resource";
+
+    @Autowired
+    private OAuth2AuthorizedClientService authorizedClientService;
+
+    private RestTemplate restTemplate;
+
+    public RestTemplate getRestTemplate(){
+        if(restTemplate==null){
+            restTemplate = new RestTemplate();
+        }
+        return restTemplate;
+    }
+
+    @GetMapping("/resource")
+    public String resource(OAuth2AuthenticationToken authenticationToken){
+        OAuth2AuthorizedClient auth2AuthorizedClient = authorizedClientService.loadAuthorizedClient(authenticationToken.getAuthorizedClientRegistrationId(), authenticationToken.getName());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer "+auth2AuthorizedClient.getAccessToken().getTokenValue());
+        HttpEntity<String> requestEntity = new HttpEntity<>(null, headers);
+
+        ResponseEntity<String> responseEntity = getRestTemplate().exchange(URL_GET_RES, HttpMethod.GET, requestEntity, String.class);
+        return responseEntity.getBody();
+
+    }
+}
+```
+
+
+
+# 配置资源服务器 OAuth2Resource(port:9090)
+
+## application.yml
+
+```yaml
+server:
+  port: 9090
+
+spring:
+  profiles:
+    active: test
+  logging:
+    level:
+      root: INFO
+      org.springframework.web: INFO
+      org.springframework.security: DEBUG
+      org.springframework.boot.autoconfigure: DEBUG
+#  security:
+#    oauth2:
+#      resourceserver:
+#        opaquetoken:
+#          client-id: oauth2resource
+#          client-secret: password
+#          introspection-uri: http://oauth2server:9999/oauth2/check_token
+  security:
+    oauth2:
+      resource:
+        user-info-uri: http://oauth2server:9999/me
+```
+
+## ResourceServerConfig
+
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.UserInfoTokenServices;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.config.annotation.web.configuration.EnableResourceServer;
+import org.springframework.security.oauth2.config.annotation.web.configuration.ResourceServerConfigurerAdapter;
+import org.springframework.security.oauth2.config.annotation.web.configurers.ResourceServerSecurityConfigurer;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.provider.token.RemoteTokenServices;
+import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
+
+@Configuration
+@EnableResourceServer
+public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
+    private static final Logger log = LoggerFactory.getLogger(ResourceServerConfig.class);
+    public static final String RESOURCE_ID = "resourceserver";
+
+    @Override
+    public void configure(ResourceServerSecurityConfigurer resources) throws Exception {
+        super.configure(resources);
+        resources.resourceId(RESOURCE_ID);
+        resources.tokenServices(tokenServices());
+    }
+
+    @Override
+    public void configure(HttpSecurity http) throws Exception {
+        http.requestMatchers().antMatchers("/resource")
+                .and()
+                .authorizeRequests().anyRequest().authenticated();
+        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED);
+    }
+
+    @Value("${spring.security.oauth2.resource.user-info-uri}")
+    String userInfoUri;
+
+    @Primary
+    @Bean
+    public ResourceServerTokenServices tokenServices() {
+//        final RemoteTokenServices tokenService = new RemoteTokenServices();
+//        tokenService.setCheckTokenEndpointUrl("http://oauth2server:9999/oauth2/check_token");
+//        tokenService.setClientId("oauth2resource");
+//        tokenService.setClientSecret("password");
+//        return tokenService;
+        return new UserInfoTokenServices(userInfoUri, "");
+    }
+}
 ```
 
 
