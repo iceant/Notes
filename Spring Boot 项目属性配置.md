@@ -208,7 +208,7 @@ spring.jackson.serialization.write-dates-as-timestamps=false
 </dependency>
 ```
 
-## 使用
+## layout.html
 
 ```html
 <!DOCTYPE html>
@@ -226,6 +226,48 @@ spring.jackson.serialization.write-dates-as-timestamps=false
 ${body}
 </body>
 </html>
+```
+
+## login.html
+
+```html
+<!--:
+var body = {
+-->
+<div id="login">
+    <h3 class="text-center text-white pt-5">Login form</h3>
+    <div class="container">
+        <div id="login-row" class="row justify-content-center align-items-center">
+            <div id="login-column" class="col-md-6">
+                <div id="login-box" class="col-md-12">
+                    <form id="login-form" class="form" action="" method="post">
+                        <h3 class="text-center text-info">Login</h3>
+                        <div class="form-group">
+                            <label for="username" class="text-info">Username:</label><br>
+                            <input type="text" name="username" id="username" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="password" class="text-info">Password:</label><br>
+                            <input type="text" name="password" id="password" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="remember-me" class="text-info"><span>Remember me</span> <span><input id="remember-me" name="remember-me" type="checkbox"></span></label><br>
+                            <input type="submit" name="submit" class="btn btn-info btn-md" value="submit">
+                        </div>
+                        <div id="register-link" class="text-right">
+                            <a href="#" class="text-info">Register here</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!--:};//end body-->
+
+<!--:
+include("/layout/layout.html",{title:i18n('app.pages.index.title'), head:'', body:body}){}
+-->
 ```
 
 
@@ -286,42 +328,43 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 ## login.html
 
 ```html
-<link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
-<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-<!------ Include the above in your HEAD tag ---------->
-
-<body>
-    <div id="login">
-        <h3 class="text-center text-white pt-5">Login form</h3>
-        <div class="container">
-            <div id="login-row" class="row justify-content-center align-items-center">
-                <div id="login-column" class="col-md-6">
-                    <div id="login-box" class="col-md-12">
-                        <form id="login-form" class="form" action="" method="post">
-                            <h3 class="text-center text-info">Login</h3>
-                            <div class="form-group">
-                                <label for="username" class="text-info">Username:</label><br>
-                                <input type="text" name="username" id="username" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label for="password" class="text-info">Password:</label><br>
-                                <input type="text" name="password" id="password" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label for="remember-me" class="text-info"><span>Remember me</span> <span><input id="remember-me" name="remember-me" type="checkbox"></span></label><br>
-                                <input type="submit" name="submit" class="btn btn-info btn-md" value="submit">
-                            </div>
-                            <div id="register-link" class="text-right">
-                                <a href="#" class="text-info">Register here</a>
-                            </div>
-                        </form>
-                    </div>
+<!--:
+var body = {
+-->
+<div id="login">
+    <h3 class="text-center text-white pt-5">Login form</h3>
+    <div class="container">
+        <div id="login-row" class="row justify-content-center align-items-center">
+            <div id="login-column" class="col-md-6">
+                <div id="login-box" class="col-md-12">
+                    <form id="login-form" class="form" action="" method="post">
+                        <h3 class="text-center text-info">Login</h3>
+                        <div class="form-group">
+                            <label for="username" class="text-info">Username:</label><br>
+                            <input type="text" name="username" id="username" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="password" class="text-info">Password:</label><br>
+                            <input type="text" name="password" id="password" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="remember-me" class="text-info"><span>Remember me</span> <span><input id="remember-me" name="remember-me" type="checkbox"></span></label><br>
+                            <input type="submit" name="submit" class="btn btn-info btn-md" value="submit">
+                        </div>
+                        <div id="register-link" class="text-right">
+                            <a href="#" class="text-info">Register here</a>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
-</body>
+</div>
+<!--:};//end body-->
+
+<!--:
+include("/layout/layout.html",{title:i18n('app.pages.index.title'), head:'', body:body}){}
+-->
 ```
 
 # 忽略 favicon.ico
@@ -727,6 +770,414 @@ public class RunAsController {
     }
 
 }
+```
+
+# Rest API 认证和Web 认证并存
+
+## WebSecurityConfig
+
+```java
+
+import com.github.iceant.point.core.security.RestAuthenticationDetailsSource;
+import com.github.iceant.point.core.security.RestAuthenticationFailureHandler;
+import com.github.iceant.point.core.security.RestAuthenticationProvider;
+import com.github.iceant.point.core.security.RestAuthenticationSuccessHandler;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
+import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
+
+import javax.sql.DataSource;
+
+@Configuration
+@EnableWebSecurity
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+    final DataSource dataSource;
+    @Value("${app.security.remember_me_token:point-node-java-runtime-rememberme}")
+    private String rememberMeToken;
+
+    public WebSecurityConfig(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth
+                .authenticationProvider(daoAuthenticationProvider())
+                .authenticationProvider(restAuthenticationProvider());
+    }
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.csrf().disable().cors()
+                .and()
+                .authorizeRequests()
+                .antMatchers("/login", "/static/**", "/webjars/**").permitAll()
+                .anyRequest().authenticated()
+                .and()
+                .formLogin()
+                    .authenticationDetailsSource(restAuthenticationDetailsSource())
+                    .loginProcessingUrl("/login")
+                    .successHandler(new RestAuthenticationSuccessHandler())
+                    .failureHandler(new RestAuthenticationFailureHandler())
+                    .loginPage("/pages/login").permitAll()
+                .and()
+                .logout()
+                    .logoutUrl("/logout").logoutSuccessUrl("/").invalidateHttpSession(true)
+        ;
+
+        http.rememberMe()
+                .userDetailsService(userDetailsService())
+                .tokenRepository(persistentTokenRepository())
+                .key(rememberMeToken)
+        ;
+
+        http.sessionManagement()
+                .maximumSessions(1)
+        ;
+    }
+
+    @Override
+    public void configure(WebSecurity web) throws Exception {
+        super.configure(web);
+        web.ignoring().mvcMatchers("/favicon.ico");
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////
+    ////
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        PasswordEncoder passwordEncoder = passwordEncoder();
+        String password = passwordEncoder.encode("password");
+
+        JdbcUserDetailsManager userDetailsManager = new JdbcUserDetailsManager();
+        userDetailsManager.setEnableAuthorities(true);
+        userDetailsManager.setEnableGroups(true);
+        userDetailsManager.setDataSource(dataSource);
+        if (!userDetailsManager.userExists("user")) {
+            userDetailsManager.createUser(User.withUsername("user").password(password)
+                    .roles("USER").build());
+        }
+        if (!userDetailsManager.userExists("admin")) {
+            userDetailsManager.createUser(User.withUsername("admin").password(password)
+                    .roles("USER", "ADMIN").build());
+        }
+        return userDetailsManager;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////
+    //// remember me
+
+    @Bean
+    public PersistentTokenRepository persistentTokenRepository() {
+        JdbcTokenRepositoryImpl tokenRepository = new JdbcTokenRepositoryImpl();
+        tokenRepository.setDataSource(dataSource);
+        return tokenRepository;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////
+    ////
+    @Bean
+    DaoAuthenticationProvider daoAuthenticationProvider() {
+        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
+        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
+        daoAuthenticationProvider.setUserDetailsService(userDetailsService());
+        return daoAuthenticationProvider;
+    }
+
+    @Bean
+    RestAuthenticationProvider restAuthenticationProvider(){
+        return new RestAuthenticationProvider(userDetailsService(), passwordEncoder());
+    }
+
+    @Bean
+    RestAuthenticationDetailsSource restAuthenticationDetailsSource(){
+        return new RestAuthenticationDetailsSource();
+    }
+
+}
+```
+
+
+
+## RestAuthenticationProvider
+
+可以使用以下方式进行认证
+
+> POST http://host:port/login
+>
+> Content-Type: application/json
+>
+> {"username":"user", "password":"password"}
+
+
+
+```java
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+public class RestAuthenticationProvider implements AuthenticationProvider {
+    final UserDetailsService userDetailsService;
+    final PasswordEncoder passwordEncoder;
+
+    public RestAuthenticationProvider(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+        this.userDetailsService = userDetailsService;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Override
+    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        RestWebAuthenticationDetails restWebAuthenticationDetails = (RestWebAuthenticationDetails) authentication.getDetails();
+        String username = restWebAuthenticationDetails.getUsername();
+        String password = restWebAuthenticationDetails.getPassword();
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        if (userDetails != null) {
+            if (passwordEncoder.matches(password, userDetails.getPassword())) {
+                return new UsernamePasswordAuthenticationToken(username, password, userDetails.getAuthorities());
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public boolean supports(Class<?> authentication) {
+        return authentication.equals(UsernamePasswordAuthenticationToken.class);
+    }
+}
+```
+
+## RestAuthenticationDetailsSource
+
+```java
+import org.springframework.security.authentication.AuthenticationDetailsSource;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
+
+import javax.servlet.http.HttpServletRequest;
+
+public class RestAuthenticationDetailsSource implements AuthenticationDetailsSource<HttpServletRequest, WebAuthenticationDetails> {
+    @Override
+    public WebAuthenticationDetails buildDetails(HttpServletRequest context) {
+        return new RestWebAuthenticationDetails(context);
+    }
+}
+```
+
+## RestAuthenticationDetails
+
+```java
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
+public class RestWebAuthenticationDetails extends WebAuthenticationDetails {
+
+    JsonNode params;
+
+    public RestWebAuthenticationDetails(HttpServletRequest request) {
+        super(request);
+        params = readAsNode(request, 1024, "UTF-8");
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////
+    ////
+
+    JsonNode readAsNode(HttpServletRequest request, int bufferSize, String charset){
+        if (request == null) return null;
+        InputStream is = null;
+        ByteArrayOutputStream baos = null;
+        byte[] buffer = new byte[bufferSize];
+        int count = 0;
+        try {
+            is= request.getInputStream();
+            baos = new ByteArrayOutputStream();
+            while ((count = is.read(buffer)) != -1) {
+                baos.write(buffer, 0, count);
+            }
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.readTree(baos.toString(charset));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }finally {
+            if(baos!=null){
+                try {
+                    baos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                baos=null;
+            }
+            if(is!=null){
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    
+    public String getUsername() {
+        return params.get("username").asText();
+    }
+
+    public String getPassword() {
+        return params.get("password").asText();
+    }
+
+}
+```
+
+## RestAuthenticationSuccessHandler
+
+```java
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.iceant.point.core.beans.WebResponse;
+import com.github.iceant.point.core.utils.AppUtil;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+
+public class RestAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) throws IOException, ServletException {
+        handle(request, response, authentication);
+    }
+
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+        handle(request, response, authentication);
+    }
+
+    private void handle(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
+        if(MediaType.APPLICATION_JSON_VALUE.equals(request.getHeader(HttpHeaders.ACCEPT))
+                || MediaType.APPLICATION_JSON_VALUE.equals(request.getHeader(HttpHeaders.CONTENT_TYPE))){
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding("UTF-8");
+            response.setStatus(HttpStatus.OK.value());
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+            String ret = objectMapper.writeValueAsString(WebResponse.success(HttpStatus.OK.value(), AppUtil.msg("security.authentication.success")));
+            PrintWriter out = response.getWriter();
+            out.write(ret);
+            out.flush();
+            out.close();
+        }else{
+            response.sendRedirect("");
+        }
+    }
+}
+```
+
+## RestAuthenticationFailureHandler
+
+```java
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.iceant.point.core.beans.WebResponse;
+import com.github.iceant.point.core.utils.AppUtil;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.*;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+
+public class RestAuthenticationFailureHandler implements AuthenticationFailureHandler {
+
+    private String getMessage(Exception e){
+        if(e instanceof LockedException){
+            return AppUtil.msg("security.authentication.error.locked");
+        }else if(e instanceof BadCredentialsException){
+            return AppUtil.msg("security.authentication.error.bad_credentials");
+        }else if(e instanceof DisabledException){
+            return AppUtil.msg("security.authentication.error.disabled");
+        }else if(e instanceof AccountExpiredException){
+            return AppUtil.msg("security.authentication.error.account_expired");
+        }else if(e instanceof CredentialsExpiredException){
+            return AppUtil.msg("security.authentication.error.credentials_expired");
+        }else{
+            return e.getMessage();
+        }
+    }
+
+    @Override
+    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
+        if(MediaType.APPLICATION_JSON_VALUE.equals(request.getHeader(HttpHeaders.CONTENT_TYPE))
+                || MediaType.APPLICATION_JSON_VALUE.equals(request.getHeader(HttpHeaders.ACCEPT)) ){
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setStatus(HttpStatus.OK.value());
+            response.setCharacterEncoding("UTF-8");
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+            String ret = objectMapper.writeValueAsString(WebResponse.fail().setCode(HttpStatus.INTERNAL_SERVER_ERROR.value()).setMessage(getMessage(exception)));
+            PrintWriter out = response.getWriter();
+            out.write(ret);
+            out.flush();
+            out.close();
+        }else{
+            response.sendRedirect("/");
+        }
+    }
+}
+```
+
+## 错误信息
+
+```properties
+################################################################################
+#### security
+security.authentication.success=Success
+security.authentication.failure=Faliure
+security.authentication.error.locked=Account locked
+security.authentication.error.bad_credentials=Bad Credentials
+security.authentication.error.disabled=Account disabled
+security.authentication.error.account_expired=Account expired
+security.authentication.error.credentials_expired=Credentials expired
 ```
 
 
@@ -2183,6 +2634,19 @@ aclService.updateAcl(acl);
 | `hasPermission(Object targetId, String targetType, Object permission)` | Returns `true` if the user has access to the provided target for the given permission. For example, `hasPermission(1, 'com.example.domain.Message', 'read')` |
 
 # TransactionConfiguration
+
+## dependency
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-aop</artifactId>
+</dependency>
+```
+
+
+
+## Java code
 
 ```java
 import org.aspectj.lang.annotation.Aspect;
