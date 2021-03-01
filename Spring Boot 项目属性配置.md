@@ -138,6 +138,16 @@ spring.messages.basename=static/i18n/messages
 
 messages.properties 不能少
 
+# 开启 GZIP传输
+
+```properties
+################################################################################
+## gzip
+server.compression.enabled=true
+server.compression.mime-types=application/json,application/xml,text/html,text/xml,text/plain,text/css,text/javascript
+server.compression.min-response-size=2048
+```
+
 
 
 # 配置数据库
