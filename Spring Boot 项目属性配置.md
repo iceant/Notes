@@ -53,6 +53,25 @@
         <module>point-assets-hub-webui</module>
     </modules>
 
+    <build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<mainClass>com.capitek.CickpApplication</mainClass>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+    
     <repositories>
         <repository>
             <id>aliyun</id>
@@ -65,6 +84,36 @@
             </snapshots>
         </repository>
     </repositories>
+</project>
+```
+
+
+
+# 子模块 pom.xml
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>ubattery-cloud</artifactId>
+        <groupId>cn.ubattery</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>ubattery-cloud-template</artifactId>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <encoding>UTF-8</encoding>
+        <java.version>1.8</java.version>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+
 </project>
 ```
 
@@ -112,6 +161,138 @@
         <url>http://repo.spring.io/milestone</url>
     </repository>
 </repositories>
+```
+
+# Spring Boot DependencyManagement
+
+```xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-dependencies</artifactId>
+            <version>2.4.3</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+# Maven settings.xml
+
+```xml
+<settings xmlns="http://maven.apache.org/SETTINGS/1.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd">
+  <localRepository/>
+  <interactiveMode/>
+  <usePluginRegistry/>
+  <offline/>
+ 
+  <proxies>
+    <proxy>
+      <active/>
+      <protocol/>
+      <username/>
+      <password/>
+      <port/>
+      <host/>
+      <nonProxyHosts/>
+      <id/>
+    </proxy>
+  </proxies>
+ 
+  <servers>
+    <server>
+      <username/>
+      <password/>
+      <privateKey/>
+      <passphrase/>
+      <filePermissions/>
+      <directoryPermissions/>
+      <configuration/>
+      <id/>
+    </server>
+  </servers>
+ 
+  <mirrors>
+    <mirror>
+      <mirrorOf/>
+      <name/>
+      <url/>
+      <layout/>
+      <mirrorOfLayouts/>
+      <id/>
+    </mirror>
+  </mirrors>
+ 
+  <profiles>
+    <profile>
+      <activation>
+        <activeByDefault/>
+        <jdk/>
+        <os>
+          <name/>
+          <family/>
+          <arch/>
+          <version/>
+        </os>
+        <property>
+          <name/>
+          <value/>
+        </property>
+        <file>
+          <missing/>
+          <exists/>
+        </file>
+      </activation>
+      <properties>
+        <key>value</key>
+      </properties>
+ 
+      <repositories>
+        <repository>
+          <releases>
+            <enabled/>
+            <updatePolicy/>
+            <checksumPolicy/>
+          </releases>
+          <snapshots>
+            <enabled/>
+            <updatePolicy/>
+            <checksumPolicy/>
+          </snapshots>
+          <id/>
+          <name/>
+          <url/>
+          <layout/>
+        </repository>
+      </repositories>
+      <pluginRepositories>
+        <pluginRepository>
+          <releases>
+            <enabled/>
+            <updatePolicy/>
+            <checksumPolicy/>
+          </releases>
+          <snapshots>
+            <enabled/>
+            <updatePolicy/>
+            <checksumPolicy/>
+          </snapshots>
+          <id/>
+          <name/>
+          <url/>
+          <layout/>
+        </pluginRepository>
+      </pluginRepositories>
+      <id/>
+    </profile>
+  </profiles>
+ 
+  <activeProfiles/>
+  <pluginGroups/>
+</settings>
 ```
 
 
@@ -1560,6 +1741,72 @@ http.sessionManagement()
 
 如果不实现，session 并发控制无法实现
 
+# 动态添加 @Controller
+
+## 准备模块中的 Configuration
+
+```java
+import cn.ubattery.cloud.common.SpringContextUtil;
+import cn.ubattery.cloud.security.controller.SecurityController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Configuration;
+
+import javax.annotation.PostConstruct;
+
+@Configuration
+public class UBatteryCloudSecurityConfiguration{
+    static final Logger log = LoggerFactory.getLogger(UBatteryCloudSecurityConfiguration.class);
+
+    @PostConstruct
+    public void postConfig(){
+        log.info("has bean 'uBatteryCloudSecurityController'? {} ", SpringContextUtil.hasBean("uBatteryCloudSecurityController"));
+        if(!SpringContextUtil.hasBean("uBatteryCloudSecurityController")) {
+            log.info("register bean 'uBatteryCloudSecurityController'");
+            SpringContextUtil.registerSingleton("uBatteryCloudSecurityController", new SecurityController());
+            SpringContextUtil.refreshRequestMapping();
+        }
+        log.info("UBatteryCloudSecurityConfiguration finished!");
+    }
+
+}
+```
+
+## 配置自动启动(spring.factories)
+
+在 `/META-INFO/spring.factories`中添加内容
+
+```properties
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=cn.ubattery.cloud.security.UBatteryCloudSecurityConfiguration
+```
+
+## Controller
+
+```java
+import cn.ubattery.cloud.common.WebResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping(path = {"/ubattery/security"})
+public class SecurityController {
+
+    @GetMapping(path = {"/index"})
+    public Object  index(){
+       return WebResponse.success(200);
+    }
+
+    @GetMapping(path = {"/more"})
+    public Object more(){
+       return WebResponse.success(200, "more");
+    }
+
+}
+```
+
+
+
 # Redis 整合
 
 TBD
@@ -1999,7 +2246,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Profile("simple")
 @Configuration
 @EnableWebSecurity(debug = true)
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     @Bean
