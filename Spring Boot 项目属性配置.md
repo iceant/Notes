@@ -304,17 +304,16 @@ application.properties 中配置
 ```properties
 ################################################################################
 ## i18n
-spring.messages.basename=static/i18n/messages
+spring.messages.basename=i18n/messages
 ```
 
 ```text
 /src
 	|- resources/
-		|- static/
-			|- i18n/
-				|- messages.properties
-				|- messages_en.properties
-				|- messages_zh_CN.properties
+		|- i18n/
+			|- messages.properties
+			|- messages_en.properties
+			|- messages_zh_CN.properties
 ```
 
 messages.properties 不能少
@@ -362,6 +361,8 @@ spring.datasource.initialization-mode=always
 # Jackson 不输出空值
 
 ```properties
+################################################################################
+## jackson
 spring.jackson.default-property-inclusion=non_empty
 ```
 
@@ -439,10 +440,13 @@ var body = {
                         </div>
                         <div class="form-group">
                             <label for="password" class="text-info">Password:</label><br>
-                            <input type="text" name="password" id="password" class="form-control">
+                            <input type="password" name="password" id="password" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label for="remember-me" class="text-info"><span>Remember me</span> <span><input id="remember-me" name="remember-me" type="checkbox"></span></label><br>
+                            <label for="remember-me" class="text-info">
+                                <span>Remember me</span>
+                                <span><input id="remember-me" name="remember-me" type="checkbox"></span>
+                            </label><br>
                             <input type="submit" name="submit" class="btn btn-info btn-md" value="submit">
                         </div>
                         <div id="register-link" class="text-right">
@@ -2027,6 +2031,8 @@ public class OAuth2LoginSecurityConfig extends WebSecurityConfigurerAdapter {
 - localhost 接收到返回，重定向到之前访问的网站
 
 # 配置 OAuth2Server(port:9999)
+
+[参考资料](https://docs.spring.io/spring-security-oauth2-boot/docs/2.2.x-SNAPSHOT/reference/html/boot-features-security-oauth2-authorization-server.html)
 
 ## pom.xml
 
