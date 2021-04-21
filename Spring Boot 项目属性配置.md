@@ -615,13 +615,18 @@ beetl.suffix=html
 
 ```java
 import com.ibeetl.starter.BeetlTemplateCustomize;
+import org.beetl.core.Context;
+import org.beetl.core.Function;
 import org.beetl.core.GroupTemplate;
 import org.beetl.ext.spring.BeetlGroupUtilConfiguration;
+import org.beetl.ext.web.WebVariable;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.servlet.support.RequestContext;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -2874,6 +2879,142 @@ aclService.updateAcl(acl);
 - `sidIdentityQuery` 和 `classIdentityQuery`需要根据数据库调整 SQL 语句，默认是 `call identity()`, sqlite 使用 "select seq from sqlite_sequence where name=<表名>"
 - 需要自己写ACL分配的页面：允许还是拒绝, sid(useranme或者角色名), 对象（type, id),  permission , AclUtil 提供帮助
 - 可以通过调用 AclPermissionEvaluator.setObjectIdentityGenerator 和  AclPermissionEvaluator.setObjectIdentityRetrievalStrategy 来替换 ObjectIdentity 的实现策略，比如实现对没有 getId 方法的对象，可以适配 getUserId 方法，以及对某一种类型的对象进行认证 
+
+# 异常处理
+
+## Rest接口异常
+
+`ApiError`
+
+```java
+import org.springframework.http.HttpStatus;
+
+import java.util.Arrays;
+import java.util.List;
+
+public class ApiError {
+    private HttpStatus status;
+    private String message;
+    private List<String> errors;
+
+    public ApiError(HttpStatus status, String message, List<String> errors) {
+        super();
+        this.status = status;
+        this.message = message;
+        this.errors = errors;
+    }
+
+    public ApiError(HttpStatus status, String message, String error) {
+        super();
+        this.status = status;
+        this.message = message;
+        errors = Arrays.asList(error);
+    }
+
+    public HttpStatus getStatus() {
+        return status;
+    }
+
+    public ApiError setStatus(HttpStatus status) {
+        this.status = status;
+        return this;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public ApiError setMessage(String message) {
+        this.message = message;
+        return this;
+    }
+
+    public List<String> getErrors() {
+        return errors;
+    }
+
+    public ApiError setErrors(List<String> errors) {
+        this.errors = errors;
+        return this;
+    }
+}
+```
+
+
+
+`RestExceptionControllerAdvice`
+
+```java
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+import java.util.ArrayList;
+import java.util.List;
+
+@ControllerAdvice(annotations = {RestController.class})
+public class RestExceptionsControllerAdvice extends ResponseEntityExceptionHandler {
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+        List<String> errors = new ArrayList<String>();
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+            errors.add(error.getField() + ": " + error.getDefaultMessage());
+        }
+        for (ObjectError error : ex.getBindingResult().getGlobalErrors()) {
+            errors.add(error.getObjectName() + ": " + error.getDefaultMessage());
+        }
+
+        ApiError apiError = new ApiError(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), errors);
+
+        return handleExceptionInternal(ex, apiError, headers, apiError.getStatus(), request);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException ex, HttpHeaders headers,
+            HttpStatus status, WebRequest request) {
+        String error = ex.getParameterName() + " parameter is missing";
+
+        ApiError apiError = new ApiError(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), error);
+        return new ResponseEntity<Object>(apiError, new HttpHeaders(), apiError.getStatus());
+    }
+
+    @ExceptionHandler({ MethodArgumentTypeMismatchException.class })
+    public ResponseEntity<Object> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException ex, WebRequest request) {
+        String error = ex.getName() + " should be of type " + ex.getRequiredType().getName();
+        ApiError apiError = new ApiError(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), error);
+        return new ResponseEntity<Object>(apiError, new HttpHeaders(), apiError.getStatus());
+    }
+
+    @ExceptionHandler({ ConstraintViolationException.class })
+    public ResponseEntity<Object> handleConstraintViolation(
+            ConstraintViolationException ex, WebRequest request) {
+        List<String> errors = new ArrayList<String>();
+        for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
+            errors.add(violation.getRootBeanClass().getName() + " " +
+                    violation.getPropertyPath() + ": " + violation.getMessage());
+        }
+
+        ApiError apiError = new ApiError(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), errors);
+        return new ResponseEntity<Object>(apiError, new HttpHeaders(), apiError.getStatus());
+    }
+}
+```
+
+
 
 # Expression-Based Access Control
 
